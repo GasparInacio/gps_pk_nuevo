@@ -22,6 +22,9 @@ def gps_page(page: ft.Page):
     progreso = ft.ProgressBar(width=400)
     status = ft.Text("")
 
+    km_desde_field = ft.TextField(label="Km desde", width=120)
+    km_hasta_field = ft.TextField(label="Km hasta", width=120)
+
     resultados_table = ft.DataTable(columns=[
         ft.DataColumn(ft.Text("Latitude")),
         ft.DataColumn(ft.Text("Longitude")),
@@ -83,6 +86,27 @@ def gps_page(page: ft.Page):
             page.update()
             return
 
+        # --- Validar rangos ingresados ---
+        try:
+            km_desde = float(km_desde_field.value or 0)
+            km_hasta = float(km_hasta_field.value or df_puntos['km'].max())
+        except ValueError:
+            page.snack_bar = ft.SnackBar(ft.Text("❌ Los valores de km deben ser numéricos."))
+            page.snack_bar.open = True
+            page.update()
+            return
+
+        # --- Filtrar el segmento selecionado ---
+        df_segmento = df_puntos[(df_puntos['km'] >= km_desde) & (df_puntos['km'] <= km_hasta)]
+        if df_segmento.empty:
+            page.snack_bar = ft.SnackBar(ft.Text("⚠️ No hay puntos en ese rango de km."))
+            page.snack_bar.open = True
+            page.update()
+            return
+
+        # --- Crear la traza ---
+        linea_traza_segmento = LineString(df_segmento[['longitude', 'latitude']].values)
+
         # Usar Tkinter para abrir diálogo de selección
         root = Tk()
         root.withdraw()
@@ -104,26 +128,21 @@ def gps_page(page: ft.Page):
 
         for i, row in enumerate(sospechas_df.itertuples(), start=1):
             point = Point(row.longitude, row.latitude)
-            nearest_point_on_line = linea_traza.interpolate(linea_traza.project(point))
+            nearest_point_on_line = linea_traza_segmento.interpolate(linea_traza_segmento.project(point))
             lat_cercana = nearest_point_on_line.y
             lon_cercana = nearest_point_on_line.x
-            distancia_m = point.distance(nearest_point_on_line) * 111000
+            distancia_m = geodesic((row.latitude, row.longitude), (lat_cercana, lon_cercana)).m
 
-            df_puntos['distancia'] = df_puntos.apply(
-                lambda r: geodesic(
-                    (row.latitude, row.longitude),
-                    (r['latitude'], r['longitude'])
-                ).km * 1000,
-                axis=1
-            )
-            punto_cercano = df_puntos.loc[df_puntos['distancia'].idxmin()]
+            idx_cercano = df_segmento['latitude'].sub(lat_cercana).abs() + df_segmento['longitude'].sub(
+                lon_cercana).abs()
+            km_cercano = df_segmento.loc[idx_cercano.idxmin(), 'km']
 
             resultados.append({
                 'latitude_busq': row.latitude,
                 'longitude_busq': row.longitude,
                 'lat_cercana': lat_cercana,
                 'lon_cercana': lon_cercana,
-                'km_punto_cercano': punto_cercano['km'],
+                'km_punto_cercano': km_cercano,
                 'distancia_m': distancia_m
             })
 
@@ -184,6 +203,7 @@ def gps_page(page: ft.Page):
         [
             titulo,
             ft.Row([archivo_seleccionado, boton_cargar_ramal], spacing=10),
+            ft.Row([km_desde_field, km_hasta_field]),
             ft.Row([boton_subir, boton_descargar, boton_limpiar], spacing=10),
             progreso,
             status,
