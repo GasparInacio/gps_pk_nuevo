@@ -8,10 +8,14 @@ import sys
 
 
 def resource_path(relative_path):
-    try:
-        base_path = sys._MEIPASS
-    except AttributeError:
-        base_path = os.path.abspath(".")
+    if relative_path.startswith("data"):
+        base_path = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.abspath(".")
+    else:
+        # Otros recursos que sí se incluyen con PyInstaller
+        try:
+            base_path = sys._MEIPASS
+        except AttributeError:
+            base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
 
 

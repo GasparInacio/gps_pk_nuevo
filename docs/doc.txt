@@ -1,33 +1,36 @@
-- Para instalar las dependencias primero verificar que esté activado el entorno virtual que se genera con la creacion del proyecto en pycharm, en el caso de no estar activado ingresar en la consola el siguiente comando:
+- Abrir GPS-PK.exe
 
-    .venv/Scripts/activate
+            --- PÁGINA GPS ---
+- Con el botón de la parte superior 'GPS' se ingresa a la página para calcular el pk de las sospechas mediante las latitudes y longitudes.
 
-    - Se verifica que esté activado el entorno si aparece algo similar e este texto:
+- En el menú desplegable seleccionar el ramal con el cual se va a trabajar y apretar el botón 'Cargar ramal'. En el caso de no haber ningun ramal, se explica como cargarlo mas adelante en este mismo documento.
 
-    (.venv) PS C:\Users\Gaspar\Desktop\gps_sospechas
+- Ingresar con valores numéricos desde que km hasta que km se va a realizar la búsqueda de los puntos (km de inicio y fin en el cual se trabajó)
 
-- Una vez activado el entorno virtual se instalan las dependencias con el comando:
+- Presionar el botón 'Seleccionar archivo de sospechas' y elegir un archivo excel (.xlsx) que contenga las columnas Latitude y Longitude y sus respectivas latitudes y longitudes. Hay dos archivos de ejemplo en esta misma carpeta.
 
-    pip install -r requirements.txt
+¡¡IMPORTANTE!!
+- Verificar la ventana de carga de archivos, puede que no se abra en primer plano y esté por detrás de la ventana de la app.
 
-- Una vez instaladas las dependencias verificar que las importaciones en el script no lancen errores
+- Esperar a que se procesen las sospechas.
 
-- Para correr el script colocar el siguiente comando en la consola:
+- Una vez procesadas se mostrarán en la parte inferior:
+    - Latitude = latitud de la sospecha
+    - Logitude = longitud de la sospecha
+    - Lat Cercana = latitud mas cercana encontrada en el progresivado
+    - Lon Cercana = longitud mas cercana encontrada en el progresivado
+    - KM Cercano = kilómetro mas cercano encontrado en el progresivado
+    - Diistancia (m) = idstancia aproximada entre el punto del progresivado y la sospecha
 
-    streamlit run script_traza.py
+- Una vez procesados los datos se puede descargar a tabla isualizada en formato xlsx con el botón 'Descargar resultados'
 
-    IMPORTANTE: veificar que sea "script_traza.py", el archivo "script_gral.py" calcula los puntos mas cercano en base a la lista de puntos fijos y no están interpolados formando una línea. Funciona pero no es lo correcto, lo mas preciso es trazar una línea con los puntos fijos y a partir de eso buscar los puntos mas cercanos a la traza.
+- Con el botón limpiar pantalla se limpia la tabla
 
-- El script ya toma como referencia el archivo "sarmiento.csv" de puntos fijos que se encuentra en la carpeta
+            --- PÁGINA CARGA DE PROGRESIVADO ---
+- Con el botón 'Carga de rogresivado' se ingresa a la página para cargar los datos procesados de los progresivados que se hacen en los viajes gps.
 
-- En la barra lateral se debe subir el archivo excel con las sospechas
+- Elegir un nombre para el archivo. Se recomienda ser descriptivo con el nombre ya que será después el archivo que se use en a página GPS en el menú desplegable.
 
-- El excel que se suba tiene que tener una columna "Latitude" y una "Longitude" con sus respectivos valores (respetar mayúsculas y minúsculas igual que en el archivo para que no lance errores). En la carpeta hay dos archivos de ejemplo, "sospechas.xlsx" es un archivo con solo 3 puntos para probar y que no tarde tanto el procesamiento, "sospechas_sarmiento.xlsx" son los datos del archivo de las sospechas que se pasaron al grupo el día 09/10/2025 con los puntos a verificar
+- Seleccionar el archivo con el botón 'Seleccionar archivo(s) de progresivado'. El archivo debe ser un archivo .csv con las columnas latitude,longitude,km. En esta misma carpeta el archivo 'sarmiento.csv' es un ejemplo de como debe ser el archivo.
 
-- La barra de progreso muestra la cantidad de puntos que van siendo procesados
-
-- Una vez procesados todos los puntos se muestra una tabla con la vista previa de las columnas y sus respectivos valores de lo que se encontró
-
-    - latitud y longitud buscadas, latitud y longitud mas cercana con su respectivo pk y la distancia de la sospecha al punto fijo en m
-
-- El botón de descarga permite guardar la tabla previsualizada en formato excel.
+- Una vez seleccioado se confirma con el botón 'Confirmar carga'. Los archivos se guardan en la carpeta 'data'.
