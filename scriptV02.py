@@ -1,4 +1,7 @@
 import flet as ft
+import sys
+if getattr(sys, "frozen", False):
+    sys.path.append(sys._MEIPASS)
 from pages.gps_page import gps_page
 from pages.datos_page import datos_page
 
