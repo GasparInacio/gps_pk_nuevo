@@ -1,19 +1,11 @@
+# pages/gps_page.py
 import flet as ft
 import pandas as pd
 from shapely.geometry import LineString, Point
 from geopy.distance import geodesic
 from tkinter import Tk, filedialog
+from utils.utils import resource_path
 import os
-import sys
-
-
-def resource_path(relative_path):
-    if getattr(sys, 'frozen', False):
-        base_path = sys._MEIPASS if not relative_path.startswith("data") else os.path.dirname(sys.executable)
-    else:
-        base_path = os.path.abspath(".")
-    return os.path.join(base_path, relative_path)
-
 
 def gps_page(page: ft.Page):
     # --- Componentes base ---
@@ -37,9 +29,10 @@ def gps_page(page: ft.Page):
 
     # --- Buscar archivos base en /data ---
     data_dir = resource_path("data")
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)  # crea carpeta si no existe
+
     archivos_base = [f for f in os.listdir(data_dir) if f.endswith((".csv", ".xlsx"))]
-    if not archivos_base:
-        return ft.Text("⚠️ No hay archivos en la carpeta 'data'. Subí uno desde 'Carga de progresivado'.")
 
     archivo_seleccionado = ft.Dropdown(
         label="Seleccionar ramal base",
@@ -47,11 +40,9 @@ def gps_page(page: ft.Page):
         width=300
     )
 
-    # --- Variables auxiliares ---
     df_puntos = None
     linea_traza = None
 
-    # --- Cargar ramal seleccionado ---
     def cargar_ramal(e):
         nonlocal df_puntos, linea_traza
         archivo = archivo_seleccionado.value
@@ -77,7 +68,6 @@ def gps_page(page: ft.Page):
 
     boton_cargar_ramal = ft.ElevatedButton("Cargar ramal", on_click=cargar_ramal)
 
-    # --- Procesar Excel con Tkinter ---
     def seleccionar_y_procesar_excel(e):
         nonlocal df_resultados
         if df_puntos is None:
@@ -86,7 +76,6 @@ def gps_page(page: ft.Page):
             page.update()
             return
 
-        # --- Validar rangos ingresados ---
         try:
             km_desde = float(km_desde_field.value or 0)
             km_hasta = float(km_hasta_field.value or df_puntos['km'].max())
@@ -96,7 +85,6 @@ def gps_page(page: ft.Page):
             page.update()
             return
 
-        # --- Filtrar el segmento selecionado ---
         df_segmento = df_puntos[(df_puntos['km'] >= km_desde) & (df_puntos['km'] <= km_hasta)]
         if df_segmento.empty:
             page.snack_bar = ft.SnackBar(ft.Text("⚠️ No hay puntos en ese rango de km."))
@@ -104,18 +92,13 @@ def gps_page(page: ft.Page):
             page.update()
             return
 
-        # --- Crear la traza ---
         linea_traza_segmento = LineString(df_segmento[['longitude', 'latitude']].values)
 
-        # Usar Tkinter para abrir diálogo de selección
+        # Tkinter para abrir archivo de sospechas
         root = Tk()
         root.withdraw()
-        archivo_path = filedialog.askopenfilename(
-            title="Seleccionar archivo de sospechas",
-            filetypes=[("Archivos Excel", "*.xlsx")]
-        )
+        archivo_path = filedialog.askopenfilename(title="Seleccionar archivo de sospechas", filetypes=[("Archivos Excel", "*.xlsx")])
         root.destroy()
-
         if not archivo_path:
             return
 
@@ -133,8 +116,7 @@ def gps_page(page: ft.Page):
             lon_cercana = nearest_point_on_line.x
             distancia_m = geodesic((row.latitude, row.longitude), (lat_cercana, lon_cercana)).m
 
-            idx_cercano = df_segmento['latitude'].sub(lat_cercana).abs() + df_segmento['longitude'].sub(
-                lon_cercana).abs()
+            idx_cercano = df_segmento['latitude'].sub(lat_cercana).abs() + df_segmento['longitude'].sub(lon_cercana).abs()
             km_cercano = df_segmento.loc[idx_cercano.idxmin(), 'km']
 
             resultados.append({
@@ -152,31 +134,23 @@ def gps_page(page: ft.Page):
 
         df_resultados = pd.DataFrame(resultados)
         resultados_table.rows.clear()
-
         for r in resultados:
-            resultados_table.rows.append(
-                ft.DataRow(cells=[
-                    ft.DataCell(ft.Text(str(r['latitude_busq']))),
-                    ft.DataCell(ft.Text(str(r['longitude_busq']))),
-                    ft.DataCell(ft.Text(str(r['lat_cercana']))),
-                    ft.DataCell(ft.Text(str(r['lon_cercana']))),
-                    ft.DataCell(ft.Text(str(r['km_punto_cercano']))),
-                    ft.DataCell(ft.Text(f"{r['distancia_m']:,.2f}".replace('.', ',')))
-                ])
-            )
+            resultados_table.rows.append(ft.DataRow(cells=[
+                ft.DataCell(ft.Text(str(r['latitude_busq']))),
+                ft.DataCell(ft.Text(str(r['longitude_busq']))),
+                ft.DataCell(ft.Text(str(r['lat_cercana']))),
+                ft.DataCell(ft.Text(str(r['lon_cercana']))),
+                ft.DataCell(ft.Text(str(r['km_punto_cercano']))),
+                ft.DataCell(ft.Text(f"{r['distancia_m']:,.2f}".replace('.', ',')))
+            ]))
         page.update()
 
-    # --- Descargar resultados ---
     def descargar_excel(e):
         if df_resultados.empty:
             return
         root = Tk()
         root.withdraw()
-        ruta = filedialog.asksaveasfilename(
-            defaultextension=".xlsx",
-            filetypes=[("Excel files", "*.xlsx")],
-            title="Guardar resultados"
-        )
+        ruta = filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Excel files", "*.xlsx")], title="Guardar resultados")
         root.destroy()
         if ruta:
             df_resultados.to_excel(ruta, index=False)
@@ -184,7 +158,6 @@ def gps_page(page: ft.Page):
             page.snack_bar.open = True
             page.update()
 
-    # --- Limpiar ---
     def limpiar_pantalla(e):
         nonlocal df_resultados
         df_resultados = pd.DataFrame()
@@ -193,24 +166,18 @@ def gps_page(page: ft.Page):
         status.value = ""
         page.update()
 
-    # --- Botones ---
     boton_subir = ft.ElevatedButton("Seleccionar archivo de sospechas", on_click=seleccionar_y_procesar_excel)
     boton_descargar = ft.ElevatedButton("Descargar resultados", on_click=descargar_excel)
     boton_limpiar = ft.ElevatedButton("Limpiar pantalla", on_click=limpiar_pantalla)
 
     # --- Layout ---
-    return ft.Column(
-        [
-            titulo,
-            ft.Row([archivo_seleccionado, boton_cargar_ramal], spacing=10),
-            ft.Row([km_desde_field, km_hasta_field]),
-            ft.Row([boton_subir, boton_descargar, boton_limpiar], spacing=10),
-            progreso,
-            status,
-            ft.Divider(),
-            resultados_table
-        ],
-        spacing=10,
-        expand=True
-    )
-
+    return ft.Column([
+        titulo,
+        ft.Row([archivo_seleccionado, boton_cargar_ramal], spacing=10),
+        ft.Row([km_desde_field, km_hasta_field]),
+        ft.Row([boton_subir, boton_descargar, boton_limpiar], spacing=10),
+        progreso,
+        status,
+        ft.Divider(),
+        resultados_table
+    ], spacing=10, expand=True)

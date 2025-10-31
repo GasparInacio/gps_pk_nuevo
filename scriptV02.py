@@ -1,7 +1,4 @@
 import flet as ft
-import sys
-if getattr(sys, "frozen", False):
-    sys.path.append(sys._MEIPASS)
 from pages.gps_page import gps_page
 from pages.datos_page import datos_page
 
@@ -11,12 +8,23 @@ def main(page: ft.Page):
     page.bgcolor = "#012C33"
 
     # Sidebar fija
-    sidebar = ft.Row([
-        ft.ElevatedButton("GPS", on_click=lambda e: page.go("/")),
-        ft.ElevatedButton("Carga de progresivado", on_click=lambda e: page.go("/datos")),
-    ], spacing=10, alignment=ft.MainAxisAlignment.CENTER)
+    sidebar = ft.Row(
+        [
+            ft.ElevatedButton("GPS", on_click=lambda e: page.go("/")),
+            ft.ElevatedButton("Carga de progresivado", on_click=lambda e: page.go("/datos")),
+        ],
+        spacing=10,
+        alignment=ft.MainAxisAlignment.CENTER
+    )
 
-    sidebar_container = ft.Container(content=sidebar, width=200, bgcolor="#012C33", padding=10, expand=False, alignment=ft.alignment.center)
+    sidebar_container = ft.Container(
+        content=sidebar,
+        width=200,
+        bgcolor="#012C33",
+        padding=10,
+        expand=False,
+        alignment=ft.alignment.center
+    )
 
     # Contenedor dinámico
     content = ft.Column([], expand=True, scroll=ft.ScrollMode.AUTO)
@@ -29,7 +37,12 @@ def main(page: ft.Page):
     def route_change(route):
         content.controls.clear()
         if page.route == "/":
-            content.controls.extend(gps_page(page).controls)
+            # Cargar la página GPS
+            page_gps = gps_page(page)
+            if isinstance(page_gps, ft.Control):
+                content.controls.extend(page_gps.controls)
+            else:
+                content.controls.append(page_gps)  # en caso de mostrar solo un texto de error
         elif page.route == "/datos":
             content.controls.extend(datos_page(page).controls)
         else:
